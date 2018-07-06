@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Parse csv files and save to DynamoDb
+
+
+Parameters:
+    S3BUCKET:
+        Type: String
+        Description: The name of the bucket
+        MinLength: 3
+        MaxLength: 25
+        Default: csvtodynamodbdfa9e718
+        AllowedPattern: '^[a-zA-Z][a-zA-Z0-9_]*$'
+
+Globals:
+    Function:
+        Runtime: nodejs8.10
+        Timeout: 10
+        MemorySize: 128
+        Environment:
+            Variables:
+                TABLE_NAME: !Ref CsvToDatabase
+                QUEUE_URL: !Ref TargetQueue
+                BUCKET_NAME: !Ref S3BUCKET
+                
+                
+Resources:
+    CsvToDatabase:
+        Type: AWS::DynamoDB::Table
+        Description: Database table for writing data from Csv to DynamoDb
+        Properties:
+            TableName: CsvToDatabase
+            AttributeDefinitions:
+                -   AttributeName: firstname
+                    AttributeType: S
+            KeySchema:
+                -   AttributeName: firstname
+                    KeyType: HASH
+            ProvisionedThroughput:
+                ReadCapacityUnits: 1
+                WriteCapacityUnits: 10
+    
+    TargetQueue:
+        Type: AWS::SQS::Queue
+        
+    CsvToSQSFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: lambda-producer.handler
+            Description: This lambda function gets the data from s3 bucket and streams it into a queue
+            Policies: 
+                -   Version: 2012-10-17
+                    Statement:
+                        -   Effect: Allow
+                            Action:
+                                -   sqs:GetQueueAttributes
+                                -   sqs:SendMessage
+                                -   sqs:SendMessageBatch
+                            Resource: '*' # change to resource Arn
+                        -   Effect: Allow
+                            Action:
+                                -   s3:GetObject
+                            Resource: '*' # change to resource Arn
+            Events:
+                Upload:
+                    Type: S3
+                    Properties:
+                        Bucket: !Ref Bucket
+                        Events: 's3:ObjectCreated:*'
+    
+    Bucket:
+        Type: AWS::S3::Bucket
+        Properties:
+            BucketName: !Ref S3BUCKET
+        
+    WriteToDynamoDbFunction:
+        Type: 'AWS::Serverless::Function'
+        Properties:
+            Handler: lambda-consumer.handler
+            Description: This lambda function polls SQS and saves the data to DynamoDb
+            Policies:
+                -   Version: 2012-10-17
+                    Statement:
+                        -   Effect: Allow
+                            Action:
+                                -   dynamodb:BatchWriteItem
+                                -   dynamodb:PutItem
+                            Resource: '*' # change to resource Arn
+                        -   Effect: Allow
+                            Action:
+                                -   sqs:DeleteMessage
+                                -   sqs:DeleteMessageBatch
+                                -   sqs:GetQueueAttributes
+                                -   sqs:ReceiveMessage 
+                            Resource: '*' #change to resource Arn
+            Events:
+                PollFromSQS:
+                    Type: SQS
+                    Properties:
+                        Queue: !GetAtt TargetQueue.Arn
+                        BatchSize: 1
+            ReservedConcurrentExecutions: 1 # It does throttle the execution, otherwise you'll exceed the provisioned throughput
+                        
+        
+ 

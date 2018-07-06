@@ -1,0 +1,17 @@
+{
+  "name": "CsvToDynamoDb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lambda-consumer.js",
+  "scripts": {
+    "test": "No testing yet",
+    "folder": "rm -rf build && mkdir build",
+    "bucket": "aws s3api create-bucket --bucket csv-processing-sqs-machine --region us-east-1",
+    "package": "aws cloudformation package --template-file template.yaml --output-template-file build/output.yaml --s3-bucket csv-processing-sqs-machine",
+    "deploy": "aws cloudformation deploy --template-file build/output.yaml --stack-name fromS3toDynamoDb --capabilities CAPABILITY_NAMED_IAM",
+    "qd": "npm run folder && npm run bucket && npm run package && npm run deploy"
+  },
+  "keywords": [],
+  "author": "Dimitri Tarasowski",
+  "license": "MIT"
+}
