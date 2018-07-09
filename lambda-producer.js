@@ -2,38 +2,32 @@ const AWS = require('aws-sdk')
 const s3 = new AWS.S3()
 const sqs = new AWS.SQS()
 const parse = require('fast-csv')
+const queue = require('./adapter')
+const parseS3Event = require('./parse-s3-event')
 
-const sqsQueueUrl = process.env.QUEUE_URL
-const bucketName = process.env.BUCKET_NAME
+const BUCKET_NAME = process.env.BUCKET_NAME
 
-exports.handler = async(event, context, callback) => {
+const createStream = (objectKey) => {
 
-    const objectKey = event.Records[0].s3.object.key
-    const s3Stream = s3.getObject({ Bucket: bucketName, Key: objectKey }).createReadStream()
+    return s3.getObject({
+            Bucket: BUCKET_NAME,
+            Key: objectKey
+        })
+        .createReadStream()
+}
+
+// check the difference between async and callback
+exports.handler = (event, context, callback) => {
+
+    const objectKey = parseS3Event(event)
+    const s3Stream = objectKey.map(createStream)[0]
 
     parse.fromStream(s3Stream)
-        .on('data', (data) => {
-            const structure = {
-                firstname: data[0],
-                lastname: data[1],
-                email: data[2],
-                date: data[3],
-                comment: data[4]
-            }
-
-            const params = {
-                MessageBody: JSON.stringify(structure),
-                QueueUrl: sqsQueueUrl,
-            }
-
-            sqs.sendMessage(params, (err, data) => {
-                if (err) console.log(err, err.stack)
-                else console.log(data)
-            })
-
-
-
+        .on('data', streamingData => {
+            queue.sendMessage(streamingData)
+                .then(data => console.log('successfully sent to queue', data))
+                .catch(err => console.log('something went wrong', err))
         })
 
-    callback(null, { message: 'Hello from Lambda' })
+    callback(null, "success")
 }

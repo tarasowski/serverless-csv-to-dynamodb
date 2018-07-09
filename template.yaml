@@ -19,7 +19,7 @@ Globals:
         MemorySize: 128
         Environment:
             Variables:
-                TABLE_NAME: !Ref CsvToDatabase
+                TABLE_NAME: CsvToDatabase
                 QUEUE_URL: !Ref TargetQueue
                 BUCKET_NAME: !Ref S3BUCKET
                 
@@ -31,10 +31,10 @@ Resources:
         Properties:
             TableName: CsvToDatabase
             AttributeDefinitions:
-                -   AttributeName: firstname
+                -   AttributeName: userId
                     AttributeType: S
             KeySchema:
-                -   AttributeName: firstname
+                -   AttributeName: userId
                     KeyType: HASH
             ProvisionedThroughput:
                 ReadCapacityUnits: 1
@@ -98,7 +98,7 @@ Resources:
                     Type: SQS
                     Properties:
                         Queue: !GetAtt TargetQueue.Arn
-                        BatchSize: 1
+                        BatchSize: 1 # change to 10 since the lambda function can handle batches
             ReservedConcurrentExecutions: 1 # It does throttle the execution, otherwise you'll exceed the provisioned throughput
                         
         

@@ -2,7 +2,6 @@ module.exports = (event) => {
     if (!event || !event.Records || !Array.isArray(event.Records)) {
         return []
     }
-    const extractMessage = record => JSON.parse(record.body)
-
+    const extractMessage = record => record.s3.object.key
     return event.Records.map(extractMessage)
 }

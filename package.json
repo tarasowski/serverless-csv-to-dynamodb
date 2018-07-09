@@ -11,6 +11,12 @@
     "deploy": "aws cloudformation deploy --template-file build/output.yaml --stack-name fromS3toDynamoDb --capabilities CAPABILITY_NAMED_IAM",
     "qd": "npm run folder && npm run bucket && npm run package && npm run deploy"
   },
+  "dependencies": {
+    "csv-parser": "^1.12.1",
+    "fast-csv": "^2.4.1",
+    "sb-stream-promise": "^2.0.0",
+    "uuid": "^3.3.2"
+  },
   "keywords": [],
   "author": "Dimitri Tarasowski",
   "license": "MIT"
