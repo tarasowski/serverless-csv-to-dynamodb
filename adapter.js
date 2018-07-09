@@ -38,19 +38,11 @@ module.exports.putItem = (messageBody) => {
 }
 
 module.exports.sendMessage = (streamingData) => {
-    const [firstname, lastname, email, date, comment] = streamingData
 
     const params = {
-        MessageBody: JSON.stringify({
-            firstname,
-            lastname,
-            email,
-            date,
-            comment
-        }),
+        MessageBody: JSON.stringify(streamingData),
         QueueUrl: sqsQueueUrl,
     }
-
 
     return sqs.sendMessage(params).promise()
 }
